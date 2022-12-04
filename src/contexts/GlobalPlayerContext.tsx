@@ -1,9 +1,20 @@
 import { WatchPlayerProps } from "@/components/features/anime/WatchPlayer";
 import classNames from "classnames";
-import { AnimatePresence, motion, Variants } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  Variants,
+} from "framer-motion";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import React, { createContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { isMobile } from "react-device-detect";
 import { WatchPlayerContextProps } from "./WatchContext";
 
@@ -47,14 +58,47 @@ const playerVariants: Variants = {
 const PlayerContext = createContext<ContextProps>(null);
 
 const GlobalPlayerContextProvider: React.FC = ({ children }) => {
+  const constraintsRef = useRef<HTMLDivElement>(null);
   const [playerState, setPlayerState] = useState<PlayerProps>(null);
   const [playerProps, setPlayerProps] = useState<WatchPlayerContextProps>(null);
+
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
 
   const router = useRouter();
 
   const shouldPlayInBackground = useMemo(() => {
-    return !router?.pathname.includes("watch") && !isMobile;
+    return !router?.pathname.includes("watch");
   }, [router?.pathname]);
+
+  useEffect(() => {
+    if (shouldPlayInBackground) return;
+
+    // Set the player position just in case it is dragged
+    x.set(0);
+    y.set(0);
+  }, [shouldPlayInBackground, x, y]);
+
+  const playerSize = useMemo(() => {
+    if (!shouldPlayInBackground) {
+      return {
+        width: "100vw",
+        height: "100vh",
+      };
+    }
+
+    if (isMobile) {
+      return {
+        width: 320,
+        height: 180,
+      };
+    }
+
+    return {
+      width: 400,
+      height: 225,
+    };
+  }, [shouldPlayInBackground]);
 
   return (
     <PlayerContext.Provider
@@ -67,6 +111,11 @@ const GlobalPlayerContextProvider: React.FC = ({ children }) => {
     >
       {children}
 
+      <div
+        className="fixed inset-0 pointer-events-none"
+        ref={constraintsRef}
+      ></div>
+
       {!!playerState?.sources ? (
         <AnimatePresence initial={false}>
           <div
@@ -76,11 +125,16 @@ const GlobalPlayerContextProvider: React.FC = ({ children }) => {
             )}
           >
             <motion.div
-              layout
               dragElastic={0}
-              variants={playerVariants}
-              animate={shouldPlayInBackground ? "background" : "watch"}
-              transition={{ duration: 0.5, type: "tween" }}
+              drag={shouldPlayInBackground}
+              dragMomentum={false}
+              dragConstraints={constraintsRef}
+              style={{
+                width: playerSize.width,
+                height: playerSize.height,
+                x,
+                y,
+              }}
             >
               <ForwardRefPlayer {...playerState} />
             </motion.div>

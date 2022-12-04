@@ -4,7 +4,7 @@ import ArrowSwiper, {
 } from "@/components/shared/ArrowSwiper";
 import useDevice from "@/hooks/useDevice";
 import { Episode } from "@/types";
-import { chunk, groupBy } from "@/utils";
+import { chunk, groupBy, parseNumberFromString } from "@/utils";
 import classNames from "classnames";
 import Link, { LinkProps } from "next/link";
 import React, { useMemo } from "react";
@@ -84,10 +84,13 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = (props) => {
         {...chunkSwiperProps}
       >
         {chunks.map((chunk, i) => {
-          const firstEpisodeName = chunk[0].name.replace("Tập", "");
-          const lastEpisodeName = chunk[chunk.length - 1].name.replace(
-            "Tập",
-            ""
+          const firstEpisodeName = parseNumberFromString(
+            chunk[0].name,
+            chunk[0].name
+          );
+          const lastEpisodeName = parseNumberFromString(
+            chunk[chunk.length - 1].name,
+            chunk[chunk.length - 1].name
           );
 
           const title =
@@ -119,7 +122,9 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = (props) => {
           return (
             <div className="space-y-1" key={section}>
               {Object.keys(sections)?.length > 1 && (
-                <p className="font-semibold text-gray-300">{section}</p>
+                <p className="font-semibold text-gray-300">
+                  {section || "Default"}
+                </p>
               )}
 
               <div className="grid xl:grid-cols-8 lg:grid-cols-7 md:grid-cols-6 sm:grid-cols-5 grid-cols-4 gap-4">
